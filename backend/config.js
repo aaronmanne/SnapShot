@@ -7,12 +7,14 @@ dotenv.config();
 const config = {
     // HTTP server port (for API and reverse proxy endpoint)
     port: Number(process.env.PORT) || 8081,
+    // Whether the spider should be enabled automatically at server start (default: false)
+    spiderEnabledAtStart: (process.env.SPIDER_ENABLED_AT_START ?? 'false').toLowerCase() === 'true',
     // Spidering depth (0 = disabled, 1 = follow links one level deep)
     spiderDepth: Number(process.env.SPIDER_DEPTH ?? 2),
     // Maximum pages to fetch per starting page (seed)
     spiderMaxPerSeed: Number(process.env.SPIDER_MAX_PER_SEED ?? 20),
     // If true, only follow links on the same origin as the seed URL
-    spiderSameOriginOnly: (process.env.SPIDER_SAME_ORIGIN_ONLY ?? 'false').toLowerCase() !== 'false',
+    spiderSameOriginOnly: (process.env.SPIDER_SAME_ORIGIN_ONLY ?? 'true').toLowerCase() !== 'false',
     // Timeout for spider fetches in milliseconds
     spiderTimeoutMs: Number(process.env.SPIDER_TIMEOUT_MS ?? 8000),
     // Throttle speed per unique domain (requests per second)
@@ -23,7 +25,7 @@ const config = {
     // the system will default to the original client's User-Agent captured for each request.
     fuzzUserAgent: process.env.FUZZ_USER_AGENT || '',
     // Whether to enable aggressive fingerprinting (false by default)
-    aggressiveFingerprinting: (process.env.AGGRESSIVE_FINGERPRINTING ?? 'true').toLowerCase() !== 'false',
+    aggressiveFingerprinting: (process.env.AGGRESSIVE_FINGERPRINTING ?? 'false').toLowerCase() !== 'false',
     // CVE lookup (NVD) configuration
     cveLookupEnabled: (process.env.CVE_LOOKUP_ENABLED ?? 'true').toLowerCase() !== 'false',
     nvdApiKey: process.env.NVD_API_KEY || '',
