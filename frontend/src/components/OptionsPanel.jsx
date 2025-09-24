@@ -10,7 +10,8 @@ const DEFAULT_FUZZ_OPTIONS = [
   { key: 'headers_common', label: 'Headers (common fuzz values)' },
 ]
 
-export default function OptionsPanel({ open, onClose, llmEnabled, onToggleLlm, aggressiveFP, onToggleAggressiveFP, onFuzz, onSaveProject, onLoadProject, fuzzOptions, onFuzzOptionsChange, llmApiType = 'LMStudio' }) {
+export default function OptionsPanel({ open, onClose, llmEnabled, onToggleLlm, aggressiveFP, onToggleAggressiveFP, onFuzz, onSaveProject, onLoadProject, fuzzOptions, onFuzzOptionsChange, llmApiType = 'LMStudio',
+    spiderOptions = {}, onUpdateSpiderOptions, spiderEnabledAtStart = false, onToggleSpiderAtStart }) {
     if (!open) return null
     
     const toggleFuzzOption = (key) => {
@@ -30,7 +31,6 @@ export default function OptionsPanel({ open, onClose, llmEnabled, onToggleLlm, a
                     <div className="section">
                         <div className="section-title">Project</div>
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                            <button className="btn" onClick={onFuzz}>Generate Fuzz File</button>
                             <button className="btn" onClick={onSaveProject}>Save Project</button>
                             <button className="btn" onClick={onLoadProject}>Load Project</button>
                         </div>
@@ -79,11 +79,56 @@ export default function OptionsPanel({ open, onClose, llmEnabled, onToggleLlm, a
                         <div style={{ opacity: 0.75, marginTop: 4, fontSize: 13 }}>
                             When enabled, the backend will send a small burst of malformed HTTP requests for each newly discovered host to elicit detailed server signatures. All requests and responses are logged in Live Requests.
                         </div>
+
+                        <div style={{ height: 16 }} />
+                        {/*<label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>*/}
+                        {/*    <input type="checkbox" checked={!!spiderEnabledAtStart} onChange={e => onToggleSpiderAtStart?.(e.target.checked)} />*/}
+                        {/*    Enable spider at start*/}
+                        {/*</label>*/}
+                        {/*<div style={{ opacity: 0.75, marginTop: 4, fontSize: 13 }}>*/}
+                        {/*    When enabled, the spider will be initially enabled when the backend starts. You can still start/stop it from the header.*/}
+                        {/*</div>*/}
+                    </div>
+                    
+                    <div className="section">
+                        <div className="section-title">Spider Options</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: 4 }}>Depth</label>
+                                <input type="number" min={0} max={5} value={Number(spiderOptions.spiderDepth ?? 0)} onChange={e => onUpdateSpiderOptions?.({ spiderDepth: Number(e.target.value) })} />
+                                <div style={{ opacity: 0.6, fontSize: 12, marginTop: 4 }}>0 disables spidering</div>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: 4 }}>Max pages per seed</label>
+                                <input type="number" min={0} max={2000} value={Number(spiderOptions.spiderMaxPerSeed ?? 0)} onChange={e => onUpdateSpiderOptions?.({ spiderMaxPerSeed: Number(e.target.value) })} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <input type="checkbox" checked={!!spiderOptions.spiderSameOriginOnly} onChange={e => onUpdateSpiderOptions?.({ spiderSameOriginOnly: e.target.checked })} />
+                                    Same origin only
+                                </label>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: 4 }}>Timeout (ms)</label>
+                                <input type="number" min={100} max={120000} step={100} value={Number(spiderOptions.spiderTimeoutMs ?? 8000)} onChange={e => onUpdateSpiderOptions?.({ spiderTimeoutMs: Number(e.target.value) })} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: 4 }}>Requests/sec per domain</label>
+                                <input type="number" min={1} max={50} value={Number(spiderOptions.spiderRequestsPerSec ?? 1)} onChange={e => onUpdateSpiderOptions?.({ spiderRequestsPerSec: Number(e.target.value) })} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <input type="checkbox" checked={!!spiderOptions.spiderRespectRobots} onChange={e => onUpdateSpiderOptions?.({ spiderRespectRobots: e.target.checked })} />
+                                    Respect robots.txt
+                                </label>
+                            </div>
+                        </div>
                     </div>
                     
                     <div className="section">
                         <div className="section-title">FuzzDB Options</div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                        <button className="btn" onClick={onFuzz}>Generate Fuzz File</button>
                           {DEFAULT_FUZZ_OPTIONS.map(opt => (
                             <label key={opt.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               <input 

@@ -69,7 +69,17 @@ function configureRoutes({
 
   // Options API
   router.get('/api/options', (req, res) => {
-    res.json({ ...runtimeOptions });
+    // Return runtime options plus current spider configuration from config
+    res.json({
+      ...runtimeOptions,
+      spiderDepth: Number(config.spiderDepth),
+      spiderMaxPerSeed: Number(config.spiderMaxPerSeed),
+      spiderSameOriginOnly: !!config.spiderSameOriginOnly,
+      spiderTimeoutMs: Number(config.spiderTimeoutMs),
+      spiderRequestsPerSec: Number(config.spiderRequestsPerSec),
+      spiderRespectRobots: !!config.spiderRespectRobots,
+      spiderEnabledAtStart: !!config.spiderEnabledAtStart,
+    });
   });
   
   router.post('/api/options', (req, res) => {
@@ -90,8 +100,62 @@ function configureRoutes({
           return res.status(400).json({ error: 'Invalid LLM API type', validTypes });
         }
       }
+
+      // Spider options updates
+      const {
+        spiderDepth,
+        spiderMaxPerSeed,
+        spiderSameOriginOnly,
+        spiderTimeoutMs,
+        spiderRequestsPerSec,
+        spiderRespectRobots,
+        spiderEnabledAtStart
+      } = req.body || {};
+
+      if (spiderDepth !== undefined) {
+        const v = Number(spiderDepth);
+        if (!Number.isNaN(v) && v >= 0 && v <= 5) { // basic sane bound
+          config.spiderDepth = v;
+        } else return res.status(400).json({ error: 'Invalid spiderDepth' });
+      }
+      if (spiderMaxPerSeed !== undefined) {
+        const v = Number(spiderMaxPerSeed);
+        if (!Number.isNaN(v) && v >= 0 && v <= 2000) {
+          config.spiderMaxPerSeed = v;
+        } else return res.status(400).json({ error: 'Invalid spiderMaxPerSeed' });
+      }
+      if (spiderSameOriginOnly !== undefined) {
+        config.spiderSameOriginOnly = !!spiderSameOriginOnly;
+      }
+      if (spiderTimeoutMs !== undefined) {
+        const v = Number(spiderTimeoutMs);
+        if (!Number.isNaN(v) && v >= 100 && v <= 120000) {
+          config.spiderTimeoutMs = v;
+        } else return res.status(400).json({ error: 'Invalid spiderTimeoutMs' });
+      }
+      if (spiderRequestsPerSec !== undefined) {
+        const v = Number(spiderRequestsPerSec);
+        if (!Number.isNaN(v) && v >= 1 && v <= 50) {
+          config.spiderRequestsPerSec = v;
+        } else return res.status(400).json({ error: 'Invalid spiderRequestsPerSec' });
+      }
+      if (spiderRespectRobots !== undefined) {
+        config.spiderRespectRobots = !!spiderRespectRobots;
+      }
+      if (spiderEnabledAtStart !== undefined) {
+        config.spiderEnabledAtStart = !!spiderEnabledAtStart;
+      }
       
-      res.json({ ...runtimeOptions });
+      res.json({
+        ...runtimeOptions,
+        spiderDepth: Number(config.spiderDepth),
+        spiderMaxPerSeed: Number(config.spiderMaxPerSeed),
+        spiderSameOriginOnly: !!config.spiderSameOriginOnly,
+        spiderTimeoutMs: Number(config.spiderTimeoutMs),
+        spiderRequestsPerSec: Number(config.spiderRequestsPerSec),
+        spiderRespectRobots: !!config.spiderRespectRobots,
+        spiderEnabledAtStart: !!config.spiderEnabledAtStart,
+      });
     } catch (e) {
       res.status(400).json({ error: 'Invalid options payload', message: e?.message || String(e) });
     }
@@ -341,9 +405,19 @@ function configureRoutes({
       // Explicitly enable spidering when requested through the API
       // This ensures spidering is only enabled when directly requested by the user
       // We use the dedicated enableSpider function to set the global flag
-      enableSpider();
-      
-      setImmediate(() => startSpider(url, '', config, String(userAgent || ''), analyticsService.emitRecord.bind(analyticsService)).catch(() => {}));
+
+        if (getSpiderStatus) {
+            setTimeout(() => {
+                try {
+                    console.log('## Spidering enabled from API');
+                    enableSpider(true);
+                    startSpider(url, '', config, String(userAgent || ''), analyticsService.emitRecord.bind(analyticsService));
+                } catch (e) {
+                    // Optionally log or handle the error
+                }
+            }, 0);
+        }
+
       res.json({ started: true });
     } catch (e) {
       res.status(500).json({ error: 'Failed to start spider', message: e?.message || String(e) });

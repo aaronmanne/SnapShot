@@ -8,7 +8,7 @@ import config from '../config.js';
 
 // Import utility modules
 import ForwardProxy from './proxy/ForwardProxy.js';
-import {startSpider, lastSpideredAt} from './utils/Spider.js';
+import {startSpider, lastSpideredAt, stopSpider, enableSpider} from './utils/Spider.js';
 import {detectOpenApiForHost} from './utils/OpenApiUtils.js';
 import security, {
     identifyTechnologies,
@@ -58,6 +58,13 @@ const runtimeOptions = {
     llmEnabled: true,
     llmApiType: config.llmApiType || 'LMStudio',  // Default to LMStudio
 };
+
+// Initialize spider enabled state based on config at startup
+if (config.spiderEnabledAtStart) {
+    enableSpider();
+} else {
+    stopSpider();
+}
 
 // Create proxy server
 const {createProxyServer} = httpProxy;

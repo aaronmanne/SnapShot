@@ -29,6 +29,15 @@ export default function App() {
   const [llmEnabled, setLlmEnabled] = useState(true)
   const [aggressiveFP, setAggressiveFP] = useState(false)
   const [llmApiType, setLlmApiType] = useState('LMStudio')
+  const [spiderOptions, setSpiderOptions] = useState({
+    spiderDepth: 2,
+    spiderMaxPerSeed: 20,
+    spiderSameOriginOnly: false,
+    spiderTimeoutMs: 8000,
+    spiderRequestsPerSec: 1,
+    spiderRespectRobots: true,
+  })
+  const [spiderEnabledAtStart, setSpiderEnabledAtStart] = useState(false)
 
   // Initial load
   useEffect(() => {
@@ -49,6 +58,16 @@ export default function App() {
           if (typeof options.llmEnabled === 'boolean') setLlmEnabled(options.llmEnabled)
           if (typeof options.aggressiveFingerprinting === 'boolean') setAggressiveFP(options.aggressiveFingerprinting)
           if (options.llmApiType) setLlmApiType(options.llmApiType)
+          // Spider options
+          setSpiderOptions({
+            spiderDepth: Number(options.spiderDepth ?? 2),
+            spiderMaxPerSeed: Number(options.spiderMaxPerSeed ?? 20),
+            spiderSameOriginOnly: !!options.spiderSameOriginOnly,
+            spiderTimeoutMs: Number(options.spiderTimeoutMs ?? 8000),
+            spiderRequestsPerSec: Number(options.spiderRequestsPerSec ?? 1),
+            spiderRespectRobots: !!options.spiderRespectRobots,
+          })
+          setSpiderEnabledAtStart(!!options.spiderEnabledAtStart)
         }
       } catch (e) {
         console.error(e)
@@ -309,6 +328,27 @@ export default function App() {
         onLoadProject={onLoadProject}
         fuzzOptions={fuzzOptions}
         onFuzzOptionsChange={setFuzzOptions}
+        spiderOptions={spiderOptions}
+        onUpdateSpiderOptions={async (partial) => {
+          try {
+            const res = await setOptions(partial)
+            setSpiderOptions({
+              spiderDepth: Number(res.spiderDepth ?? spiderOptions.spiderDepth),
+              spiderMaxPerSeed: Number(res.spiderMaxPerSeed ?? spiderOptions.spiderMaxPerSeed),
+              spiderSameOriginOnly: !!res.spiderSameOriginOnly,
+              spiderTimeoutMs: Number(res.spiderTimeoutMs ?? spiderOptions.spiderTimeoutMs),
+              spiderRequestsPerSec: Number(res.spiderRequestsPerSec ?? spiderOptions.spiderRequestsPerSec),
+              spiderRespectRobots: !!res.spiderRespectRobots,
+            })
+          } catch (e) { alert('Failed to save options'); }
+        }}
+        spiderEnabledAtStart={spiderEnabledAtStart}
+        onToggleSpiderAtStart={async (checked) => {
+          try {
+            const res = await setOptions({ spiderEnabledAtStart: checked })
+            setSpiderEnabledAtStart(!!res.spiderEnabledAtStart)
+          } catch (e) { alert('Failed to save options'); }
+        }}
       />
       <RequestDetails request={selectedRequest} onClose={() => setSelectedRequest(null)} />
     </div>

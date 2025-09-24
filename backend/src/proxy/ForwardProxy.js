@@ -101,7 +101,13 @@ export default class ForwardProxy {
             const ct = String(proxyRes.headers['content-type'] || '').toLowerCase();
             if (this.config.spiderDepth > 0 && status === 200 && ct.includes('text/html')) {
               const ua = String(req.headers['user-agent'] || '');
-              setImmediate(() => this.startSpider(parsed.toString(), body, this.config, ua, this.emitRecord).catch(() => {}));
+                setImmediate(() => {
+                    const spiderResult = this.startSpider(parsed.toString(), body, this.config, ua, this.emitRecord);
+                    if (spiderResult && typeof spiderResult.catch === 'function') {
+                        spiderResult.catch(() => {});
+                    }
+                });
+
             }
           } catch {}
         });
@@ -139,7 +145,12 @@ export default class ForwardProxy {
             const last = this.lastSpideredAt.get(origin) || 0;
             if (Date.now() - last > 60000) {
               this.lastSpideredAt.set(origin, Date.now());
-              setImmediate(() => this.startSpider(origin, '', this.config, '', this.emitRecord).catch(() => {}));
+                setImmediate(() => {
+                    const spiderPromise = this.startSpider(origin, '', this.config, '', this.emitRecord);
+                    if (spiderPromise && typeof spiderPromise.catch === 'function') {
+                        spiderPromise.catch(() => {});
+                    }
+                });
             }
           }
         } catch {}
