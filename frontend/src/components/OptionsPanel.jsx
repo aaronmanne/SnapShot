@@ -31,7 +31,6 @@ export default function OptionsPanel({ open, onClose, llmEnabled, onToggleLlm, a
                     <div className="section">
                         <div className="section-title">Project</div>
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                            <button className="btn" onClick={onFuzz}>Generate Fuzz File</button>
                             <button className="btn" onClick={onSaveProject}>Save Project</button>
                             <button className="btn" onClick={onLoadProject}>Load Project</button>
                         </div>
@@ -82,13 +81,13 @@ export default function OptionsPanel({ open, onClose, llmEnabled, onToggleLlm, a
                         </div>
 
                         <div style={{ height: 16 }} />
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <input type="checkbox" checked={!!spiderEnabledAtStart} onChange={e => onToggleSpiderAtStart?.(e.target.checked)} />
-                            Enable spider at start
-                        </label>
-                        <div style={{ opacity: 0.75, marginTop: 4, fontSize: 13 }}>
-                            When enabled, the spider will be initially enabled when the backend starts. You can still start/stop it from the header.
-                        </div>
+                        {/*<label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>*/}
+                        {/*    <input type="checkbox" checked={!!spiderEnabledAtStart} onChange={e => onToggleSpiderAtStart?.(e.target.checked)} />*/}
+                        {/*    Enable spider at start*/}
+                        {/*</label>*/}
+                        {/*<div style={{ opacity: 0.75, marginTop: 4, fontSize: 13 }}>*/}
+                        {/*    When enabled, the spider will be initially enabled when the backend starts. You can still start/stop it from the header.*/}
+                        {/*</div>*/}
                     </div>
                     
                     <div className="section">
@@ -129,6 +128,7 @@ export default function OptionsPanel({ open, onClose, llmEnabled, onToggleLlm, a
                     <div className="section">
                         <div className="section-title">FuzzDB Options</div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                        <button className="btn" onClick={onFuzz}>Generate Fuzz File</button>
                           {DEFAULT_FUZZ_OPTIONS.map(opt => (
                             <label key={opt.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               <input 

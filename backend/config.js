@@ -10,9 +10,9 @@ const config = {
     // Whether the spider should be enabled automatically at server start (default: false)
     spiderEnabledAtStart: (process.env.SPIDER_ENABLED_AT_START ?? 'false').toLowerCase() === 'true',
     // Spidering depth (0 = disabled, 1 = follow links one level deep)
-    spiderDepth: Number(process.env.SPIDER_DEPTH ?? 2),
+    spiderDepth: Number(process.env.SPIDER_DEPTH ?? 1),
     // Maximum pages to fetch per starting page (seed)
-    spiderMaxPerSeed: Number(process.env.SPIDER_MAX_PER_SEED ?? 20),
+    spiderMaxPerSeed: Number(process.env.SPIDER_MAX_PER_SEED ?? 10),
     // If true, only follow links on the same origin as the seed URL
     spiderSameOriginOnly: (process.env.SPIDER_SAME_ORIGIN_ONLY ?? 'true').toLowerCase() !== 'false',
     // Timeout for spider fetches in milliseconds

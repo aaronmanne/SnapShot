@@ -324,15 +324,15 @@ class Spider {
 
 // Keep call sites unchanged by exposing a function
 function startSpider(seedUrl, seedHtml, cfg, seedUserAgent, emitRecord) {
+    if (!spiderEnabled) {
+        //console.log('[SPIDER] Spidering is disabled, not starting spider.');
+        return;
+    }
     console.log(`[SPIDER] startSpider called for ${seedUrl} with config:`, {
         spiderDepth: cfg.spiderDepth,
         spiderMaxPerSeed: cfg.spiderMaxPerSeed,
         spiderSameOriginOnly: cfg.spiderSameOriginOnly
     });
-    if (!spiderEnabled) {
-        console.log('[SPIDER] Spidering is disabled, not starting spider.');
-        return;
-    }
 
     // We do NOT automatically re-enable spidering if it was explicitly disabled
     // This allows the Stop Spider button to work effectively
