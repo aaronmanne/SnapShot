@@ -10,6 +10,7 @@ A complete, Dockerized web dashboard for monitoring and analyzing proxied HTTP r
 
 Prerequisites:
 - Docker Desktop (or Docker Engine) and Docker Compose plugin
+- .env file with API keys and other configurations
 
 Run the stack:
 
@@ -21,6 +22,7 @@ docker compose up --build
 Then open:
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:5000
+- Default http proxy port listens on 8081
 
 Port configuration:
 - The backend port is configurable via the PORT environment variable and defaults to 8081 when not set.
