@@ -51,7 +51,7 @@ function exportProject(
         llmInvestigations: Array.from(llmInvestigations.entries()),
       }
     };
-    
+
     return snapshot;
   } catch (e) {
     throw new Error(`Export failed: ${e.message || String(e)}`);
@@ -104,40 +104,40 @@ function importProject(
         if (r && r.url && r.method) requests.push(r);
       }
     }
-    
+
     if (Array.isArray(state.uniqueHosts)) {
       for (const h of state.uniqueHosts) uniqueHosts.add(String(h));
     } else {
       for (const r of requests) if (r.host) uniqueHosts.add(r.host);
     }
-    
+
     if (Array.isArray(state.uniquePaths)) {
       for (const p of state.uniquePaths) uniquePaths.add(String(p));
     } else {
       for (const r of requests) if (r.path) uniquePaths.add(r.path);
     }
-    
+
     if (Array.isArray(state.openApiDocs)) {
       for (const [host, urls] of state.openApiDocs) openApiDocs.set(String(host), Array.isArray(urls) ? urls : []);
     }
-    
+
     if (Array.isArray(state.vulnsByTechVersion)) {
       for (const [key, val] of state.vulnsByTechVersion) vulnsByTechVersion.set(String(key), val);
     }
-    
+
     if (Array.isArray(state.techVersionHosts)) {
       for (const [key, arr] of state.techVersionHosts) techVersionHosts.set(String(key), new Set(Array.isArray(arr) ? arr : []));
     }
-    
+
     if (Array.isArray(state.runtimeFindings)) {
       for (const f of state.runtimeFindings) runtimeFindings.push(f);
     }
-    
+
     if (Array.isArray(state.llmInvestigations)) {
       for (const [k, v] of state.llmInvestigations) llmInvestigations.set(String(k), v);
     }
 
-    return { success: true, counts: { requests: requests.length } };
+    return {success: true, counts: {requests: requests.length}};
   } catch (e) {
     throw new Error(`Import failed: ${e.message || String(e)}`);
   }
@@ -174,7 +174,7 @@ function purgeData(
     if (security && security.pendingCveLookups) security.pendingCveLookups.clear();
     if (runtimeFindings) runtimeFindings.length = 0;
     if (techVersionHosts) techVersionHosts.clear();
-    
+
     return true;
   } catch (e) {
     throw new Error(`Purge failed: ${e.message || String(e)}`);

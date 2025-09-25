@@ -171,28 +171,64 @@ export default function VulnerabilitiesPanel({ vulnerabilities = [] }) {
               {currentResult?.data && (
                 <div className="section">
                   <div className="section-title">Analysis</div>
-                  <div className="section">
-                    <div className="section-title">Exploitation Techniques</div>
-                    <ul className="list">
-                      {(currentResult.data.parsed?.exploitationTechniques || []).map((t, i) => <li key={i}>• {t}</li>)}
-                      {!(currentResult.data.parsed?.exploitationTechniques || []).length && <li>—</li>}
-                    </ul>
-                  </div>
-                  <div className="section">
-                    <div className="section-title">Attack Vectors</div>
-                    <ul className="list">
-                      {(currentResult.data.parsed?.attackVectors || []).map((t, i) => <li key={i}>• {t}</li>)}
-                      {!(currentResult.data.parsed?.attackVectors || []).length && <li>—</li>}
-                    </ul>
-                  </div>
-                  <div className="section">
-                    <div className="section-title">Proof of Concept (PoC)</div>
-                    <pre className="pre">{currentResult.data.parsed?.pocCode || '—'}</pre>
-                  </div>
-                  <div className="section">
-                    <div className="section-title">Mitigation Advice</div>
-                    <pre className="pre">{currentResult.data.parsed?.mitigationAdvice || '—'}</pre>
-                  </div>
+                  {currentResult.data.parsed?.originalJson && (
+                    // Dynamically generate sections based on originalJson keys
+                    Object.entries(currentResult.data.parsed.originalJson).map(([key, value], index) => {
+                      const title = key
+                        .split('_')
+                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                        .join(' ');
+                      
+                      // Format the content based on its type
+                      const formatContent = (content) => {
+                        if (Array.isArray(content)) {
+                          return (
+                            <ul className="list">
+                              {content.map((item, i) => <li key={i}>• {item}</li>)}
+                              {content.length === 0 && <li>—</li>}
+                            </ul>
+                          );
+                        } else {
+                          return <pre className="pre" style={{ whiteSpace: 'pre-wrap' }}>{content || '—'}</pre>;
+                        }
+                      };
+                      
+                      return (
+                        <div className="section" key={index}>
+                          <div className="section-title">{title}</div>
+                          {formatContent(value)}
+                        </div>
+                      );
+                    })
+                  )}
+                  
+                  {/* Fallback to original format if originalJson is not available */}
+                  {!currentResult.data.parsed?.originalJson && (
+                    <>
+                      <div className="section">
+                        <div className="section-title">Exploitation Techniques</div>
+                        <ul className="list">
+                          {(currentResult.data.parsed?.exploitationTechniques || []).map((t, i) => <li key={i}>• {t}</li>)}
+                          {!(currentResult.data.parsed?.exploitationTechniques || []).length && <li>—</li>}
+                        </ul>
+                      </div>
+                      <div className="section">
+                        <div className="section-title">Attack Vectors</div>
+                        <ul className="list">
+                          {(currentResult.data.parsed?.attackVectors || []).map((t, i) => <li key={i}>• {t}</li>)}
+                          {!(currentResult.data.parsed?.attackVectors || []).length && <li>—</li>}
+                        </ul>
+                      </div>
+                      <div className="section">
+                        <div className="section-title">Proof of Concept (PoC)</div>
+                        <pre className="pre">{currentResult.data.parsed?.pocCode || '—'}</pre>
+                      </div>
+                      <div className="section">
+                        <div className="section-title">Mitigation Advice</div>
+                        <pre className="pre">{currentResult.data.parsed?.mitigationAdvice || '—'}</pre>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>

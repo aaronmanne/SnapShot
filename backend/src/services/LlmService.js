@@ -86,48 +86,53 @@ function buildStructuredPayload(v = {}, reqRec = null) {
  * @returns {Object} - Parsed response
  */
 function extractFromResponse(text = '') {
-  // Try to parse JSON from the model output. Support fenced code blocks.
-  const t = String(text || '');
-  let jsonStr = '';
-  const fence = t.match(/```(?:json)?\n([\s\S]*?)\n```/i);
-  
-  if (fence && fence[1]) jsonStr = fence[1].trim();
-  else {
-    // find first { ... } block
-    const start = t.indexOf('{');
-    const end = t.lastIndexOf('}');
-    if (start !== -1 && end !== -1 && end > start) jsonStr = t.slice(start, end + 1);
-  }
-  
-  let parsed = null;
-  if (jsonStr) {
-    try { parsed = JSON.parse(jsonStr); } catch {}
-  }
-  
-  // Normalize fields from parsed or fallback to regex heuristics
-  const out = { exploitationTechniques: [], attackVectors: [], pocCode: '', mitigationAdvice: '', raw: t };
-  
-  if (parsed && typeof parsed === 'object') {
-    const p = parsed;
-    if (Array.isArray(p.exploitation_techniques)) out.exploitationTechniques = p.exploitation_techniques;
-    if (Array.isArray(p.attack_vectors)) out.attackVectors = p.attack_vectors;
-    if (!out.exploitationTechniques.length && Array.isArray(p.techniques)) out.exploitationTechniques = p.techniques;
-    if (!out.attackVectors.length && Array.isArray(p.vectors)) out.attackVectors = p.vectors;
-    out.pocCode = String(p.poc_code || p.poc || p.exploit || '');
-    out.mitigationAdvice = String(p.mitigation_advice || p.mitigation || p.remediation || '');
-  }
-  
-  if (!out.pocCode) {
-    const m = t.match(/(?:(?:PoC|Proof[ -]of[ -]Concept)[^\n]*?:|```[^`\n]*\n)([\s\S]{0,4000})/i);
-    if (m) out.pocCode = m[1].trim();
-  }
-  
-  if (!out.mitigationAdvice) {
-    const m = t.match(/(?:Mitigation|Remediation|Fix):?\s*([\s\S]{0,1000})/i);
-    if (m) out.mitigationAdvice = m[1].trim();
-  }
-  
-  return out;
+    // If text is an object with a content property, use it
+    const t = typeof text === 'object' && text !== null && 'content' in text
+        ? String(text.content || '')
+        : String(text || '');
+    let jsonStr = '';
+    const fence = t.match(/```(?:json)?\n([\s\S]*?)\n```/i);
+
+    if (fence && fence[1]) jsonStr = fence[1].trim();
+    else {
+        const start = t.indexOf('{');
+        const end = t.lastIndexOf('}');
+        if (start !== -1 && end !== -1 && end > start) jsonStr = t.slice(start, end + 1);
+    }
+
+    let parsed = null;
+    if (jsonStr) {
+        try { parsed = JSON.parse(jsonStr); } catch {}
+    }
+
+    // Create the default structure with standard fields
+    const out = { exploitationTechniques: [], attackVectors: [], pocCode: '', mitigationAdvice: '', raw: t };
+
+    // Add the original JSON response
+    out.originalJson = parsed;
+
+    if (parsed && typeof parsed === 'object') {
+        const p = parsed;
+        // Still populate standard fields for backward compatibility
+        if (Array.isArray(p.exploitation_techniques)) out.exploitationTechniques = p.exploitation_techniques;
+        if (Array.isArray(p.attack_vectors)) out.attackVectors = p.attack_vectors;
+        if (!out.exploitationTechniques.length && Array.isArray(p.techniques)) out.exploitationTechniques = p.techniques;
+        if (!out.attackVectors.length && Array.isArray(p.vectors)) out.attackVectors = p.vectors;
+        out.pocCode = String(p.poc_code || p.poc || p.exploit || '');
+        out.mitigationAdvice = String(p.mitigation_advice || p.mitigation || p.remediation || '');
+    }
+
+    if (!out.pocCode) {
+        const m = t.match(/(?:(?:PoC|Proof[ -]of[ -]Concept)[^\n]*?:|```[^`\n]*\n)([\s\S]{0,4000})/i);
+        if (m) out.pocCode = m[1].trim();
+    }
+
+    if (!out.mitigationAdvice) {
+        const m = t.match(/(?:Mitigation|Remediation|Fix):?\s*([\s\S]{0,1000})/i);
+        if (m) out.mitigationAdvice = m[1].trim();
+    }
+
+    return out;
 }
 
 /**
@@ -264,27 +269,31 @@ async function performInvestigation(vulnerability, requestId = '', force = false
               validateStatus: () => true
           });
 
-          if (resp.status >= 400) throw new Error(`OpenAI API error: ${resp.status}`);
+          if (resp.status >= 400) throw new Error(`OpenAI API error: ${resp.status} - ${JSON.stringify(resp.data)}`);
           llmText = String(resp.data?.choices?.[0]?.message?.content || '');
           break;
       }
       case 'Gemini': {
           // Google Gemini API
-          const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
-          const geminiPayload = {
-              contents: [{parts: [{text: prompt}]}],
-              generationConfig: {temperature: 0.7}
-          };
-
-          resp = await axios.post(`${geminiUrl}?key=${config.geminiApiKey || ''}`, geminiPayload, {
-              headers: {'Content-Type': 'application/json'},
-              timeout: Number(config.llmTimeoutMs || 300000),
-              signal: controller.signal,
-              validateStatus: () => true
+          // google has an OpenAI compatible API for Gemini
+          const openai = new OpenAI({
+              apiKey: `${config.geminiApiKey}`,
+              baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/"
           });
 
-          if (resp.status >= 400) throw new Error(`Gemini API error: ${resp.status}`);
-          llmText = String(resp.data?.candidates?.[0]?.content?.parts?.[0]?.text || '');
+          const response = await openai.chat.completions.create({
+              model: "gemini-2.5-flash",
+              reasoning_effort: "low",
+              messages: [
+                  { role: "system", content: "You are assisting with hypothetical security research." },
+                  {
+                      role: "user",
+                      content: prompt,
+                  },
+              ],
+          });
+
+          llmText = String(response.choices?.[0]?.message?.content || '');
           break;
       }
       default:
