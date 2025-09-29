@@ -5,7 +5,6 @@ import dotenv from 'dotenv';
 try {
     dotenv.config(); // Load environment variables from .env file
     console.log("Dotenv loaded successfully!");  // Debugging output
-    console.log("Loaded environment variables:", process.env);
 } catch (error) {
     console.error("Error loading .env:", error); // Debugging output - critical!
 }

@@ -70,3 +70,115 @@ a { color: #7cc4ff; text-decoration: none; }
 .pre { background: #0b1220; border: 1px solid #1f2937; padding: 8px; border-radius: 6px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
 
 .kv .v.wrap { white-space: normal; word-break: break-word; }
+
+/* Spider Domain Banner */
+.spider-domain-banner {
+  width: 100%;
+  background: #4c1d95;
+  color: white;
+  padding: 8px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 15;
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.banner-icon {
+  font-size: 1.2rem;
+}
+
+.banner-message {
+  flex: 1;
+  text-align: center;
+}
+
+.banner-clear-btn {
+  padding: 4px 8px;
+  background: #6d28d9;
+  color: white;
+  border: 1px solid #7c3aed;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.banner-clear-btn:hover {
+  background: #7c3aed;
+}
+
+/* SAST Scan Progress styles */
+.scan-progress-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.scan-status {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.scan-status-analyzing {
+  background: #d97706;
+}
+
+.scan-status-completed {
+  background: #10b981;
+}
+
+.scan-status-error {
+  background: #ef4444;
+}
+
+.status-analyzing {
+  background-color: rgba(217, 119, 6, 0.1);
+}
+
+.status-completed {
+  background-color: rgba(16, 185, 129, 0.1);
+}
+
+.status-error {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+/* Style the tab container */
+.tab {
+    overflow: hidden;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+}
+
+/* Style the buttons inside the tab */
+.tab button {
+    background-color: inherit;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    transition: 0.3s;
+}
+
+/* Change background color of buttons on hover */
+.tab button:hover {
+    background-color: #ddd;
+}
+
+/* Create an active/current tablink class */
+.tab button.active {
+    background-color: #ccc;
+}
+
+/* Style the tab content */
+.tabcontent {
+    display: none; /* Hidden by default */
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-top: none;
+}

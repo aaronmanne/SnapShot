@@ -3,6 +3,7 @@ import https from 'https';
 import httpProxy from 'http-proxy';
 import {v4 as uuidv4} from 'uuid';
 import {getSpiderStatus, startSpider} from '../utils/Spider.js';
+import {analyzeSast} from './SastService.js';
 
 /**
  * Configure proxy service for HTTP requests
@@ -152,6 +153,10 @@ class ProxyService {
                 try {
                     const newFindings = this.detectRuntimeVulns(record, body, proxyRes.headers);
                     if (newFindings && newFindings.length) this.addRuntimeFindings(newFindings);
+                    
+                    // Perform SAST (Static Analysis) on the response body
+                    const sastFindings = analyzeSast(record, body, proxyRes.headers);
+                    // SAST findings are automatically added to the collection by the service
                 } catch {
                 }
 

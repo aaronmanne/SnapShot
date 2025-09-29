@@ -122,6 +122,7 @@ The dashboard includes an Identified Vulnerabilities panel (above the Live Reque
 
 What you’ll see:
 - Known CVEs for detected technologies with version numbers (e.g., Server: nginx/1.18.0). The backend queries the NVD CVE API asynchronously and caches results per technology+version.
+- Static Application Security Testing (SAST) findings from semgrep analysis of code from responses.
 - Heuristic runtime indicators that a response may reflect exploitable behavior, including:
   - [SQLi] SQL error signatures suggesting possible SQL injection (e.g., MySQL/PostgreSQL/SQLServer/Oracle error strings)
   - [XSS] Likely client-side script execution indicators in HTML (e.g., inline <script>alert(...), onerror=alert(...), etc.)
@@ -131,10 +132,13 @@ Environment variables (backend):
 - CVE_LOOKUP_ENABLED: Enable/disable CVE lookups (default: true)
 - NVD_API_KEY: Optional NVD API key to increase rate limits (no key works but with stricter limits)
 - NVD_RESULTS_PER_TECH: Max CVEs to show per technology+version (default: 5)
+- SEMGREP_ENABLED: Enable/disable semgrep SAST analysis (default: true)
+- SEMGREP_RULES_PATH: Custom path to semgrep rules directory (default: semgrep-rules in project root)
 
 Notes:
 - Runtime indicators are heuristic and may produce false positives. Treat them as leads to investigate rather than definitive findings.
 - CVE data depends on the presence of versioned headers from targets (e.g., Server, X-Powered-By). Results update over time as more hosts are observed.
+- SAST analysis requires semgrep to be installed. You can run `npm run setup-semgrep` and `npm run clone-semgrep-rules` in the backend directory to set it up.
 
 ### LLM Investigation
 

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { analyzeSast } from '../services/SastService.js';
 
 // Lightweight spider with per-domain throttling and optional robots.txt respect.
 // Public API: extractLinks, filterLinks, startSpider(seedUrl, seedHtml, cfg, seedUserAgent), stopSpider()
@@ -55,12 +56,27 @@ function extractLinks(html = '', baseUrl) {
 function filterLinks(links, seedUrl, cfg = {}) {
     const out = [];
     const seed = new URL(seedUrl);
+    
+    // Get domain filter if provided in config
+    const domainFilter = cfg.domainFilter;
+    
     for (const l of links) {
         try {
             const u = new URL(l);
             if (u.protocol !== 'http:' && u.protocol !== 'https:') continue;
             if (/[\.](?:png|jpg|jpeg|gif|webp|svg|ico|css|woff|woff2|ttf|otf|eot|pdf|zip|tar|gz|mp4|mp3|mov|avi)(?:[?#].*)?$/i.test(u.pathname)) continue;
             if (cfg.spiderSameOriginOnly && u.origin !== seed.origin) continue;
+            
+            // Apply domain filter if set
+            if (domainFilter) {
+                const urlHost = u.host;
+                // If domain filter is set, only allow URLs that match the domain or are subdomains
+                if (!urlHost.endsWith(domainFilter) && !('.' + urlHost).endsWith('.' + domainFilter)) {
+                    console.log(`[SPIDER] Filtered out ${u.toString()} due to domain filter ${domainFilter}`);
+                    continue;
+                }
+            }
+            
             out.push(u.toString());
         } catch (_) {
         }
@@ -75,6 +91,8 @@ class Spider {
         this.robotsCache = new Map();
         // We don't have direct access to emitRecord, but we can expose it later
         this.emitRecord = null;
+        // Store domain filter for limiting spidering to specific domains
+        this.domainFilter = null;
     }
 
     getDomain(u) {
@@ -264,6 +282,28 @@ class Spider {
                             const status = res.status || 0;
                             console.log(`[SPIDER] Fetched ${url} - Status: ${status}`);
 
+                            // Send the fetched content to SAST service for analysis (non-blocking)
+                            try {
+                                const ct = String(headers['content-type'] || headers['Content-Type'] || '').toLowerCase();
+                                // Only analyze likely code/content types
+                                if (status === 200 && (ct.includes('text/html') || ct.includes('javascript') || ct.includes('application/json') || ct.includes('text/json'))) {
+                                    const body = typeof res.data === 'string' ? res.data : (res.data ? JSON.stringify(res.data) : '');
+                                    const record = {
+                                        method: 'GET',
+                                        url: url,
+                                        status: status,
+                                        timestamp: new Date().toISOString(),
+                                        headers: headers,
+                                        reqHeaders: {
+                                            'User-Agent': defaultUA,
+                                            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+                                        }
+                                    };
+                                    // Fire and forget
+                                    setImmediate(() => analyzeSast(record, body, headers).catch(() => {}));
+                                }
+                            } catch (_) {}
+
                             // Emit record to UI if emitRecord function is available
                             if (typeof this.emitRecord === 'function') {
                                 try {
@@ -324,9 +364,11 @@ class Spider {
 
 // Keep call sites unchanged by exposing a function
 function startSpider(seedUrl, seedHtml, cfg, seedUserAgent, emitRecord) {
+    // Re-enable spidering if this is a direct user call from "Spider from here"
+    // This ensures users can re-spider from specific points
     if (!spiderEnabled) {
-        //console.log('[SPIDER] Spidering is disabled, not starting spider.');
-        return;
+        console.log('[SPIDER] Spidering was disabled, but re-enabling for explicit user request');
+        spiderEnabled = true;
     }
     console.log(`[SPIDER] startSpider called for ${seedUrl} with config:`, {
         spiderDepth: cfg.spiderDepth,
@@ -334,9 +376,10 @@ function startSpider(seedUrl, seedHtml, cfg, seedUserAgent, emitRecord) {
         spiderSameOriginOnly: cfg.spiderSameOriginOnly
     });
 
-    // We do NOT automatically re-enable spidering if it was explicitly disabled
-    // This allows the Stop Spider button to work effectively
-    // spiderEnabled can only be set to true by explicit user action through the UI
+    // When "Spider from here" is selected, we want to allow re-spidering 
+    // even if it was previously disabled. This ensures users can stop spidering
+    // and then restart it for a specific URL.
+    // For API calls (like from "Spider from here"), we'll enable the spider
 
     const spider = new Spider(cfg);
 

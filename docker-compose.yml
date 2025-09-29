@@ -1,4 +1,26 @@
 services:
+
+  sast-service:
+    build:
+      context: ./sast_service
+      dockerfile: Dockerfile
+    container_name: snapshot-sast-service
+    ports:
+      - "5002:5002"
+    environment:
+      - PORT=5002
+    volumes:
+      # Mount volumes for persistent storage of semgrep rules and temp files
+      - sast-rules:/app/semgrep-rules
+      - sast-temp:/app/temp_sast
+    healthcheck:
+      test: ["CMD-SHELL", "curl http://localhost:5002/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 2
+    networks:
+      - snapshot_net
+
   backend:
     build:
       context: ./backend
@@ -10,8 +32,12 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=5000
+      - SAST_SERVICE_URL=http://sast-service:5002
     env_file:
       - .env
+    depends_on:
+      sast-service:
+        condition: service_healthy
     networks:
       - snapshot_net
 
@@ -31,3 +57,7 @@ services:
 networks:
   snapshot_net:
     driver: bridge
+
+volumes:
+  sast-rules:
+  sast-temp:

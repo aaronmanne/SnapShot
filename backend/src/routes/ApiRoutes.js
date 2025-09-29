@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { performInvestigation, generatePrompt } from '../services/LlmService.js';
 import { exportProject, importProject, purgeData } from '../services/ProjectService.js';
 import { startSpider, stopSpider, getSpiderStatus, enableSpider } from '../utils/Spider.js';
+import { getSastFindings, getScanning, clearAll as clearSast } from '../services/SastService.js';
 
 /**
  * Configure and return API routes
@@ -210,6 +211,25 @@ function configureRoutes({
     }
   });
 
+  // SAST API endpoints
+  router.get('/api/sast/findings', (req, res) => {
+    try {
+      const findings = getSastFindings();
+      res.json({ items: findings });
+    } catch (e) {
+      res.status(500).json({ error: 'Failed to get SAST findings', message: e?.message || String(e) });
+    }
+  });
+  
+  router.get('/api/sast/scanning', (req, res) => {
+    try {
+      const scanning = getScanning();
+      res.json({ items: scanning });
+    } catch (e) {
+      res.status(500).json({ error: 'Failed to get SAST scanning status', message: e?.message || String(e) });
+    }
+  });
+
   // Purge API
   router.post('/api/purge', (req, res) => {
     try {
@@ -223,6 +243,9 @@ function configureRoutes({
         techVersionHosts,
         security
       );
+      
+      // Also clear SAST findings and scanning
+      clearSast();
       
       io.emit('purged', { at: new Date().toISOString() });
       res.json({ ok: success });
@@ -389,7 +412,7 @@ function configureRoutes({
   // Spider API
   router.post('/api/spider/from', (req, res) => {
     try {
-      const { url, userAgent } = req.body || {};
+      const { url, userAgent, domainFilter } = req.body || {};
       if (!url) {
         res.status(400).json({ error: 'Missing url' });
         return;
@@ -411,14 +434,29 @@ function configureRoutes({
                 try {
                     console.log('## Spidering enabled from API');
                     enableSpider(true);
-                    startSpider(url, '', config, String(userAgent || ''), analyticsService.emitRecord.bind(analyticsService));
+                    
+                    // Create a copy of the config with optional domain filter
+                    const configWithFilter = { ...config };
+                    
+                    // If domainFilter is provided, add it to the config
+                    if (domainFilter) {
+                        configWithFilter.domainFilter = domainFilter;
+                        console.log(`[SPIDER] Limiting spider to domain: ${domainFilter}`);
+                    }
+                    
+                    startSpider(url, '', configWithFilter, String(userAgent || ''), analyticsService.emitRecord.bind(analyticsService));
                 } catch (e) {
                     // Optionally log or handle the error
                 }
             }, 0);
         }
 
-      res.json({ started: true });
+      // Return information about domain filtering in the response
+      res.json({ 
+        started: true,
+        domainFiltered: !!domainFilter,
+        domainFilter: domainFilter || null
+      });
     } catch (e) {
       res.status(500).json({ error: 'Failed to start spider', message: e?.message || String(e) });
     }

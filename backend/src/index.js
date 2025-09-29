@@ -127,7 +127,6 @@ app.use(configureRoutes({
 
 // Socket.io connection handler
 io.on('connection', socket => {
-    console.log('Client connected:', socket.id);
     socket.emit('hello', {message: 'Connected to SnapShot backend'});
 });
 

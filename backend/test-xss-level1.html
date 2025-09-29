@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>XSS Game Level 1 Simulation</title>
+</head>
+<body>
+  <h1>XSS Game: Level 1</h1>
+  <div>
+    <h2>Hello, world of XSS</h2>
+    <p>This level demonstrates a common cause of cross-site scripting where user
+    input is directly included in the page without proper escaping.</p>
+    
+    <form>
+      <input type="text" name="query" placeholder="Enter your name">
+      <input type="submit" value="Search">
+    </form>
+    
+    <div id="results">
+      <!-- Results will be displayed here -->
+    </div>
+    
+    <script>
+      // Get query parameter
+      function getParameterByName(name) {
+        const url = window.location.href;
+        name = name.replace(/[\[\]]/g, '\\$&');
+        const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
+        const results = regex.exec(url);
+        if (!results) return null;
+        if (!results[2]) return '';
+        return decodeURIComponent(results[2].replace(/\+/g, ' '));
+      }
+      
+      // Process the query parameter (vulnerable to XSS)
+      const query = getParameterByName('query');
+      if (query) {
+        // VULNERABLE: Directly inserts user input into the DOM
+        document.getElementById('results').innerHTML = 'You searched for: ' + query;
+      }
+      
+      // Handle form submission
+      document.querySelector('form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const query = document.querySelector('input[name="query"]').value;
+        window.location.href = '?query=' + encodeURIComponent(query);
+      });
+    </script>
+  </div>
+</body>
+</html>
