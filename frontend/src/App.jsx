@@ -419,10 +419,10 @@ export default function App() {
                         <ScanProgressPanel/>
                         <div style={{height: 12}}/>
                         {/* SAST Discoveries Panel */}
-                        <SastDiscoveriesPanel/>
+                        <SastDiscoveriesPanel selectedHostname={selectedHost}/>
                         <div style={{height: 12}}/>
                         {/* Original Vulnerabilities Panel */}
-                        <VulnerabilitiesPanel vulnerabilities={analytics?.vulnerabilities || []}/>
+                        <VulnerabilitiesPanel vulnerabilities={(analytics?.vulnerabilities || []).filter(v => !selectedHost || v.host === selectedHost)}/>
                         <div style={{height: 12}}/>
                     </div>
 

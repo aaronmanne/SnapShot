@@ -276,6 +276,7 @@ async function performInvestigation(vulnerability, requestId = '', force = false
       case 'Gemini': {
           // Google Gemini API
           // google has an OpenAI compatible API for Gemini
+          console.log("[INFO] processing with Gemini")
           const openai = new OpenAI({
               apiKey: `${config.geminiApiKey}`,
               baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/"

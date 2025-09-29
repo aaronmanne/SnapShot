@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { investigateVulnerability, getLlmPrompt } from '../api.js';
 
-export default function SastDiscoveriesPanel() {
+export default function SastDiscoveriesPanel({ selectedHostname = '' }) {
   const [findings, setFindings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedFinding, setSelectedFinding] = useState(null);
@@ -62,6 +63,20 @@ export default function SastDiscoveriesPanel() {
     return text.substring(0, maxLength) + '...';
   };
   
+  // Derived: filtered findings by selectedHostname
+  const filteredFindings = useMemo(() => {
+    if (!selectedHostname) return findings;
+    return findings.filter(f => {
+      try {
+        if (!f.url) return false;
+        const u = new URL(f.url);
+        return u.host === selectedHostname;
+      } catch {
+        return false;
+      }
+    });
+  }, [findings, selectedHostname]);
+
   // Handle clicking on a finding
   const handleFindingClick = (finding) => {
     setSelectedFinding(finding);
@@ -70,6 +85,43 @@ export default function SastDiscoveriesPanel() {
   // Close the details modal
   const closeDetails = () => {
     setSelectedFinding(null);
+    setPromptState({ loading: false, error: '', prompt: '', customPrompt: '' });
+    setResultState({ loading: false, error: '', data: null });
+  };
+
+  // LLM prompt/result state for the selected finding
+  const [promptState, setPromptState] = useState({ loading: false, error: '', prompt: '', customPrompt: '' });
+  const [resultState, setResultState] = useState({ loading: false, error: '', data: null });
+
+  // Fetch prompt when opening a finding
+  useEffect(() => {
+    async function loadPrompt() {
+      if (!selectedFinding) return;
+      setPromptState({ loading: true, error: '', prompt: '', customPrompt: '' });
+      try {
+        const data = await getLlmPrompt({ vulnerability: selectedFinding });
+        setPromptState({ loading: false, error: '', prompt: data.prompt, customPrompt: data.prompt });
+      } catch (e) {
+        setPromptState({ loading: false, error: e.message || 'Error', prompt: '', customPrompt: '' });
+      }
+    }
+    if (selectedFinding) loadPrompt();
+  }, [selectedFinding]);
+
+  const handlePromptChange = (e) => {
+    setPromptState(prev => ({ ...prev, customPrompt: e.target.value }));
+  };
+
+  const handleInvestigate = async () => {
+    if (!selectedFinding) return;
+    if (resultState.data) return; // avoid re-fetch
+    setResultState({ loading: true, error: '', data: null });
+    try {
+      const data = await investigateVulnerability({ vulnerability: selectedFinding, customPrompt: promptState.customPrompt });
+      setResultState({ loading: false, error: '', data });
+    } catch (e) {
+      setResultState({ loading: false, error: e.message || 'Error', data: null });
+    }
   };
 
   // Display the grid layout for rows
@@ -85,14 +137,14 @@ export default function SastDiscoveriesPanel() {
       </div>
       {!isCollapsed && (
         <div className="card-body" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-          {findings.length > 0 ? (
+          {filteredFindings.length > 0 ? (
             <ul className="list">
               <li style={{ ...rowStyle, fontWeight: 600, opacity: 0.8 }}>
                 <div>Vulnerability</div>
                 <div>URL</div>
                 <div>Severity</div>
               </li>
-              {findings.map((finding, index) => (
+              {filteredFindings.map((finding, index) => (
                 <li key={index}>
                   <div style={rowStyle}>
                     <div style={{ fontWeight: 600 }}>
@@ -194,6 +246,93 @@ export default function SastDiscoveriesPanel() {
                   )}
                 </div>
               </div>
+
+              <div className="section">
+                <div className="section-title">LLM Prompt</div>
+                {promptState.loading && <div style={{ opacity: 0.8 }}>Loading prompt...</div>}
+                {promptState.error && <div style={{ color: '#f87171' }}>Error loading prompt: {promptState.error}</div>}
+                {promptState.customPrompt && (
+                  <textarea
+                    className="pre"
+                    style={{
+                      width: '100%',
+                      minHeight: '100px',
+                      maxHeight: '400px',
+                      resize: 'vertical',
+                      fontFamily: 'monospace',
+                      padding: '8px',
+                      marginBottom: '10px',
+                      color: '#b5b5b5',
+                    }}
+                    value={promptState.customPrompt}
+                    onChange={handlePromptChange}
+                  />
+                )}
+                <button className="btn" onClick={handleInvestigate} disabled={resultState.loading || !promptState.customPrompt}>Investigate</button>
+                {resultState.loading && <span style={{ marginLeft: 10, opacity: 0.8 }}>Investigating…</span>}
+                {resultState.error && <span style={{ marginLeft: 10, color: '#f87171' }}>Error: {resultState.error}</span>}
+              </div>
+
+              {resultState.data && (
+                <div className="section">
+                  <div className="section-title">Analysis</div>
+                  {resultState.data.parsed?.originalJson && (
+                    Object.entries(resultState.data.parsed.originalJson).map(([key, value], index) => {
+                      const title = key
+                        .split('_')
+                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                        .join(' ');
+
+                      const formatContent = (content) => {
+                        if (Array.isArray(content)) {
+                          return (
+                            <ul className="list">
+                              {content.map((item, i) => <li key={i}>• {item}</li>)}
+                              {content.length === 0 && <li>—</li>}
+                            </ul>
+                          );
+                        } else {
+                          return <pre className="pre" style={{ whiteSpace: 'pre-wrap' }}>{content || '—'}</pre>;
+                        }
+                      };
+
+                      return (
+                        <div className="section" key={index}>
+                          <div className="section-title">{title}</div>
+                          {formatContent(value)}
+                        </div>
+                      );
+                    })
+                  )}
+
+                  {!resultState.data.parsed?.originalJson && (
+                    <>
+                      <div className="section">
+                        <div className="section-title">Exploitation Techniques</div>
+                        <ul className="list">
+                          {(resultState.data.parsed?.exploitationTechniques || []).map((t, i) => <li key={i}>• {t}</li>)}
+                          {!(resultState.data.parsed?.exploitationTechniques || []).length && <li>—</li>}
+                        </ul>
+                      </div>
+                      <div className="section">
+                        <div className="section-title">Attack Vectors</div>
+                        <ul className="list">
+                          {(resultState.data.parsed?.attackVectors || []).map((t, i) => <li key={i}>• {t}</li>)}
+                          {!(resultState.data.parsed?.attackVectors || []).length && <li>—</li>}
+                        </ul>
+                      </div>
+                      <div className="section">
+                        <div className="section-title">Proof of Concept (PoC)</div>
+                        <pre className="pre">{resultState.data.parsed?.pocCode || '—'}</pre>
+                      </div>
+                      <div className="section">
+                        <div className="section-title">Mitigation Advice</div>
+                        <pre className="pre">{resultState.data.parsed?.mitigationAdvice || '—'}</pre>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
