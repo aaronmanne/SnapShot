@@ -394,8 +394,8 @@ export default function App() {
             <div className="content">
                 <div className="left">
                     <div className="tab">
-                        <button className="tablinks" onClick={e => openTab(e, 'Tab1')}>Tab 1</button>
-                        <button className="tablinks" onClick={e => openTab(e, 'Tab2')}>Tab 2</button>
+                        <button className="tablinks" onClick={e => openTab(e, 'Tab1')}>Proxy</button>
+                        <button className="tablinks" onClick={e => openTab(e, 'Tab2')}>SAST</button>
                         <button className="tablinks" onClick={e => openTab(e, 'Tab3')}>Tab 3</button>
                     </div>
 
@@ -430,9 +430,6 @@ export default function App() {
                         <h3>Tab 3</h3>
                         <p>This is the content for the third tab.</p>
                     </div>
-
-
-
 
                 </div>
                 <div className="right">
