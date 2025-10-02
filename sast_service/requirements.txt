@@ -4,4 +4,4 @@ semgrep==1.49.0
 uuid==1.30
 requests==2.32.4
 python-dotenv==1.0.0
-Werkzeug==2.2.2
+Werkzeug==3.0.6
